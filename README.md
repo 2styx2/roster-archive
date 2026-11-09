@@ -17,7 +17,7 @@
   <a href="https://github.com/2styx2/roster/actions/workflows/ci.yml?query=branch%3Adev"><img src="https://github.com/2styx2/roster/actions/workflows/ci.yml/badge.svg?branch=dev" alt="CI"></a>
   <a href="https://github.com/2styx2/roster/releases"><img src="https://img.shields.io/github/v/release/2styx2/roster?include_prereleases&sort=semver&label=release" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later"></a>
 </p>
 
 <p align="center">
@@ -42,8 +42,6 @@ It comes in two parts that share that file:
 
 - **The CLI, `roster`** (Python). It sets up each box with its own SSH key, runs commands on password-only gear, calls web APIs with the stored login, scans networks into the inventory, tells Claude which hosts exist without ever showing it a secret, links your Hosts to each other with their own keys (the Mesh), and prints its data as JSON (`--json`) for scripts and other tools, never a secret.
 - **The roster app** (Tauri, for Windows and Linux). Fast, keyboard-first access to every Host: find one in a few keystrokes and you're in a shell over your own ssh, with the password fetched from the vault and never shown. It talks to the CLI through `roster serve`, so the file and the vault stay roster's.
-
-> **The app is frozen as of 2026-11-06** ([ADR 0011](docs/adr/0011-herdr-is-the-session-runtime.md)): it gets no new work and no new builds, and CI no longer tests it; `app/` and `crates/` stay in the repo. Its replacement is [herdr](https://herdr.dev) with the roster mod, [herdr-roster](https://github.com/2styx2/herdr-roster). The CLI carries on as before, with or without herdr.
 
 > **Status:** pre-release. The latest Release is [v0.3.0](https://github.com/2styx2/roster/releases): first-party Plugins, a concurrent `roster serve` and `--json`, password-prompt fill and nested ssh logins, shell integration, and a Neovim-style `init.lua` with an option reference. See [what's new](docs/news.md#v030) and the [roadmap](docs/app/roadmap.md).
 
@@ -102,7 +100,7 @@ It comes in two parts that share that file:
 
 ### The app
 
-Frozen (see above): new Releases don't include it. v0.7.0 and older carry it, from [Releases](https://github.com/2styx2/roster/releases):
+Download it from [Releases](https://github.com/2styx2/roster/releases):
 
 | Platform | File |
 |---|---|
@@ -204,10 +202,10 @@ Work happens on branches cut from `dev` and lands through pull requests that the
 
 ```bash
 uv run ruff check src tests && uv run pyright && uv run pytest     # the CLI
+cd app && npm ci && npm run check               # the app's frontend
+cargo test && cargo clippy -p roster-core --all-targets -- -D warnings && cargo fmt --check
 ```
-
-The app's checks (`cd app && npm ci && npm run check`; `cargo test`, `cargo clippy` and `cargo fmt --check` at the root) are off in CI while the app is frozen.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE). Releases up to v0.7.0 were published under GPL-3.0-or-later.
+GPL-3.0-or-later. See [LICENSE](LICENSE).

@@ -60,7 +60,7 @@ def test_the_internal_commands_and_the_old_names_are_not_offered(capsys):
     offered = complete(capsys, "")
     assert "serve" not in offered and "askpass" not in offered
     assert not {"info", "bw", "providers", "auth-check", "man", "completion", "resources", "reveal"} & set(offered)
-    assert len(offered) == 20                   # Q194's 14, ssh, agents, agent; changes, publish, pull (#563)
+    assert len(offered) == 14
 
 
 def test_help_completes_the_commands(capsys):
