@@ -4,9 +4,6 @@
 # set, roster-core's only with --ignored. Here each runs on a runner of its own with nothing else in the job,
 # the nearest CI has to an idle machine. A red run here is a hint to time it again on an idle machine,
 # before and after the change it points at, not a broken build.
-#
-# FROZEN since 2026-11-06 (ADR 0011, docs/adr/0011-herdr-is-the-session-runtime.md): both budgets time the app
-# (app/ and crates/roster-core), which gets no new work, so both jobs are `if: false`. Remove those lines to un-freeze.
 name: Performance budgets
 
 on:
@@ -27,7 +24,6 @@ env:
 jobs:
   frontend:
     name: Frontend budgets (Vitest, ROSTER_PERF=1)
-    if: false   # frozen (ADR 0011)
     runs-on: ubuntu-26.04
     defaults:
       run:
@@ -47,7 +43,6 @@ jobs:
 
   core:
     name: Core budgets (cargo test --ignored)
-    if: false   # frozen (ADR 0011)
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7

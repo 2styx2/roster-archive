@@ -106,16 +106,6 @@ class Parser(argparse.ArgumentParser):
         return f"{head}\n{self.commands_text}\n{sep}{tail}" if sep else f"{text}\n{self.commands_text}\n"
 
 
-def agents_hook_options(s: argparse.ArgumentParser) -> None:
-    """setup's and sync's --agents / --no-agents: the Agents' SessionStart hook in Claude's settings (R5)."""
-    hook = s.add_mutually_exclusive_group()
-    hook.add_argument("--no-agents", dest="agents", action="store_false", default=None,
-                      help="take the SessionStart hook that shows new Claude sessions the other herdr Agents out of "
-                           "your Claude settings, and leave it out on this Box from now on")
-    hook.add_argument("--agents", dest="agents", action="store_true", default=None,
-                      help="put that hook back after --no-agents (it's there by default where herdr-core is)")
-
-
 def build_parser(argv: "Sequence[str]" = ()) -> Parser:
     """Every command and option, for the command line ARGV (its usage errors). The man page (roster.manpage) is
     generated from this too."""
@@ -163,12 +153,10 @@ def build_parser(argv: "Sequence[str]" = ()) -> Parser:
                    "`roster mesh --rotate HOST` does those) on every Host: a new key, proven on each Host before the "
                    "old key's line goes, then the old key deleted. --host NAME (a Host or a group) narrows it; a Host "
                    "not reached stays pending until setup --rotate runs again")
-    agents_hook_options(s)
     s = sub.add_parser("sync", help="rewrite this Box's ssh config and Claude files from roster.yml, and sync the "
                        "vault (as roster vault sync); it touches no Host. Ends with what changed and the next command, "
                        "if any")
     s.add_argument("--no-vault", action="store_true", help="the map only: leave the vault as last synced")
-    agents_hook_options(s)
     s = sub.add_parser("check", help="check: can this Box reach every Host? check HOST: why a Session to it would "
                        "fail, step by step. check --box: this Box's own health. check --auth: every Login's password "
                        "source answers")
@@ -200,9 +188,6 @@ def build_parser(argv: "Sequence[str]" = ()) -> Parser:
                    help="run it as root with sudo; roster gives sudo the login's password (never shown)")
     values(s.add_argument("host", help="the host to run it on"), HOSTS)
     s.add_argument("command", nargs=argparse.REMAINDER, help="the command, after --")
-    s = sub.add_parser("ssh", help="an interactive ssh session to a Host; a password-only Host's password comes "
-                       "from the vault (never shown)")
-    values(s.add_argument("host", help="the Host to log in to"), HOSTS)
     s = sub.add_parser("add", help="add one Host you already know to roster.yml (reviewed), the app's add-Host "
                        "way")
     s.add_argument("name", metavar="NAME", nargs="?", help="the new Host's name: letters, digits, . _ - (needed "
@@ -223,28 +208,6 @@ def build_parser(argv: "Sequence[str]" = ()) -> Parser:
     s.add_argument("--title", metavar="TEXT", help="a one-line title")
     s.add_argument("--type", metavar="TEXT", help="a free label (nas, switch, esxi, ...)")
     s.add_argument("--port", type=int, metavar="N", help="its SSH port (default: 22)")
-    s.add_argument("--description", metavar="TEXT", help="one line about it")
-    s.add_argument("--product", metavar="TEXT", help="its product (what --only and --find match too)")
-    s.add_argument("--mac", metavar="MAC", help="its MAC address")
-    s.add_argument("--service", action="append", metavar="SPEC", help="a service or web UI: NAME,KEY=VALUE,... with "
-                   "port, url, scheme (http, https), user, auth (its own Login), login (basic, bearer, ...) and "
-                   "verify (true, false), e.g. web,port=8443,scheme=https; or NAME:PORT. Again for more")
-    s.add_argument("--web", metavar="URL", help="its web UI's URL (the `web` service's url:)")
-    on = s.add_mutually_exclusive_group()
-    on.add_argument("--mesh", dest="mesh", action="store_true", default=None, help="in the Mesh (default: its "
-                    "group's)")
-    on.add_argument("--no-mesh", dest="mesh", action="store_false", help="left out of the Mesh")
-    s.add_argument("--mesh-dir", metavar="DIR", help="where it keeps its Mesh files as a source (an absolute path)")
-    s.add_argument("--key-type", metavar="TYPE", help="the SSH key type its key Login uses: ed25519, ecdsa, "
-                   "ecdsa-256, ecdsa-521, rsa or rsa-BITS (default: its group's or roster.yml's)")
-    s.add_argument("--sudo-auth", metavar="REF", help="the vault item for its own sudo password (bw:ITEM, op:...), "
-                   "written as sudo: {auth: REF}")
-    on = s.add_mutually_exclusive_group()
-    on.add_argument("--shell-hooks", dest="shell_hooks", action="store_true", default=None, help="the app sends its "
-                    "shell the hook line")
-    on.add_argument("--no-shell-hooks", dest="shell_hooks", action="store_false", help="it doesn't")
-    s.add_argument("--seen-as", action="append", metavar="ADDR", help="another address or network it connects from "
-                   "(10.0.9.1, 10.0.9.0/24); again for more")
     s.add_argument("--from-vault", action="store_true", help="fill --ip (and --port) from the --auth item's URI and "
                    "--user from its username, never reading its password (bw, op); flags given win. With no NAME: list "
                    "the vault items no Login in roster.yml names (new ones since the last run), and in a terminal "
@@ -256,9 +219,8 @@ def build_parser(argv: "Sequence[str]" = ()) -> Parser:
                    "personal, ORGANIZATION/COLLECTION (bw) or GROUP (kp) (default: save_to: in roster.yml or init.lua)")
     s.add_argument("--provider", metavar="PROVIDER", help="with --save-to-vault: the vault to save in, bw or kp "
                    "(default: the vault roster.yml's Logins use most)")
-    s.add_argument("--json", action="store_true", help="print the added Host as `hosts NAME --json` does (with "
-                   "--dry-run: what it would write), never asking; with --from-vault and no NAME: print the list as "
-                   "JSON, add nothing")
+    s.add_argument("--json", action="store_true", help="with --from-vault and no NAME: print the list as JSON, add "
+                   "nothing")
     s.add_argument("--all", action="store_true", help="with --from-vault and no NAME: every item roster.yml doesn't "
                    "name, not only the new ones")
     s.add_argument("--mark-seen", action="store_true", help="with --from-vault and no NAME: remember every item "
@@ -271,21 +233,6 @@ def build_parser(argv: "Sequence[str]" = ()) -> Parser:
     s.add_argument("-y", "--yes", action="store_true", help="never ask: a missing value it can't default is an "
                    "error naming its flag (with --save-to-vault the password is still asked, and a locked vault's "
                    "master password in a terminal)")
-    s = sub.add_parser("changes", help="the Pending changes of a team-repo Inventory: roster.yml's diff against its "
-                       "last commit, by Host, and the message publish would commit; changes discard: drop them")
-    s.add_argument("action", nargs="?", choices=["discard"], help="discard: put roster.yml back as the last commit "
-                   "has it (what it held is kept as the backup)")
-    s.add_argument("--json", **as_json)
-    s = sub.add_parser("publish", help="commit roster.yml's Pending changes (that file alone) and push them to the "
-                       "team's repo, fetching first and never forcing; then sync this Box")
-    s.add_argument("-m", "--message", metavar="MSG", help="the commit message (default: one naming each Host, group "
-                   "and Link that changed)")
-    s.add_argument("--dry-run", action="store_true", help="show the diff and the message it would commit; commit and "
-                   "push nothing")
-    s.add_argument("--json", **as_json)
-    s = sub.add_parser("pull", help="bring the team's changes in: fast-forward the infra repo to its upstream (never "
-                       "a merge, rebase or stash), then sync this Box")
-    s.add_argument("--json", **as_json)
     s = sub.add_parser("discover", help="scan networks (nmap if installed) for Hosts; --write adds the new ones to "
                        "roster.yml, unreviewed")
     s.add_argument("targets", nargs="+", metavar="CIDR", help="e.g. 10.0.1.0/24 (several allowed)")
@@ -311,34 +258,6 @@ def build_parser(argv: "Sequence[str]" = ()) -> Parser:
     s.add_argument("-k", "--insecure", action="store_true", help="don't verify the TLS certificate")
     s.add_argument("--timeout", type=float, default=30, metavar="SECONDS",
                    help="how long to wait for the answer (default: 30)")
-    s = sub.add_parser("agents", help="list every Agent (Claude and other agents in herdr terminals) on this Hub "
-                       "and its herdr machines: address, Host, folder, status, label and how long it has run")
-    s.add_argument("action", nargs="?", choices=["sync", "hook"],
-                   help="sync: write the Agent directory into every connected machine's herdr-core (and the Hub's) "
-                        "as the shared document roster.agents, and say which failed. hook: the short list of the "
-                        "other Agents that Claude Code's SessionStart hook shows a new session (nothing when there's "
-                        "no herdr or no other Agent; never an error)")
-    s.add_argument("--remove", action="store_true", help="with hook: take the SessionStart hook out of your Claude "
-                   "settings (uninstall.sh runs it)")
-    s.add_argument("--json", **as_json)
-    s = sub.add_parser("agent", help="reach one Agent by its address (HOST/tN, as roster agents shows it): send it "
-                       "a message, read its screen, wait until it stops working, or label it")
-    agent = s.add_subparsers(dest="agent_cmd", metavar="ACTION", title="actions", prog="roster agent",
-                             help="what to do with the Agent (plain `roster agent` lists them)")
-    s = agent.add_parser("send", help="type TEXT into the Agent and press Enter, as if a person had")
-    s.add_argument("address", metavar="ADDRESS", help="the Agent: HOST/tN, as roster agents shows it")
-    s.add_argument("text", metavar="TEXT", help="the message")
-    s = agent.add_parser("read", help="print the Agent's screen (and with --lines, the history above it)")
-    s.add_argument("address", metavar="ADDRESS", help="the Agent: HOST/tN, as roster agents shows it")
-    s.add_argument("--lines", type=int, default=0, metavar="N", help="lines of history above the screen (default: 0)")
-    s = agent.add_parser("wait", help="wait until the Agent stops working (idle, blocked, done, or it ends)")
-    s.add_argument("address", metavar="ADDRESS", help="the Agent: HOST/tN, as roster agents shows it")
-    s.add_argument("--timeout", type=float, metavar="SECONDS",
-                   help="give up after this long, exit 124 (default: herdr-core's, 180 unless set)")
-    s = agent.add_parser("label", help="set an Agent's label (its roster.label), the calling Agent's without ADDRESS")
-    s.add_argument("address", nargs="?", metavar="ADDRESS",
-                   help="the Agent: HOST/tN (default: the herdr terminal this runs in, HC_TERMINAL_ID)")
-    s.add_argument("text", metavar="TEXT", help="the label: what the Agent is on (\"\" removes it)")
     s = sub.add_parser("mesh", help="set up Host-to-Host access (mesh: and links: in roster.yml), one Host at a time")
     s.add_argument("action", nargs="?", choices=["cut", "status", "leftovers"],
                    help="cut HOST: take it out of the Mesh now, everywhere; status: who reaches whom (no connections); "
@@ -468,10 +387,7 @@ def check(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.cmd == "add" and args.name is None and not args.from_vault:
         parser.error("roster add needs NAME, the new Host's name")
     if args.cmd == "add" and args.name is not None:
-        if args.json and (args.setup or args.save_to_vault):
-            parser.error("--json goes with an add that asks nothing: drop --setup and --save-to-vault (run setup "
-                         "--host NAME after it)")
-        listed = [f for f, on in (("--all", args.all), ("--mark-seen", args.mark_seen),
+        listed = [f for f, on in (("--json", args.json), ("--all", args.all), ("--mark-seen", args.mark_seen),
                                   ("--no-sync", args.no_sync)) if on]
         if listed:
             parser.error(f"{', '.join(listed)} go{'es' if len(listed) == 1 else ''} with --from-vault and no NAME "
@@ -485,8 +401,6 @@ def check(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         parser.error("--save-to and --provider go with --save-to-vault")
     if args.cmd == "revoke" and args.all and (args.only or args.inv or args.config):
         parser.error("revoke --all revokes every Inventory's Hosts: drop --only, --inv and -c")
-    if args.cmd == "agents" and args.remove and args.action != "hook":
-        parser.error("--remove goes with hook: roster agents hook --remove")
 
 
 def command_parser(parser: argparse.ArgumentParser, words: Sequence[str]) -> argparse.ArgumentParser:
